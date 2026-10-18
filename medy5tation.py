@@ -21,9 +21,11 @@ except Exception:  # pragma: no cover
 # KONFIGURASI TOKO (Ubah sesuai kebutuhan)
 # =====================================================================
 WA_NUMBER = "6282289421650"
-OPEN_HOUR, CLOSE_HOUR = 10, 21          # Jam buka toko (WIB)
-OPEN_DAYS = [0, 1, 2, 3, 4, 5, 6]       # 0=Senin ... 6=Minggu
-STORE_LAT, STORE_LON = -2.9761, 104.7754  # Titik koordinat peta Palembang
+OPEN_HOUR, CLOSE_HOUR = 10, 21                # Jam buka toko (WIB)
+OPEN_DAYS = [0, 1, 2, 3, 4, 5, 6]             # 0=Senin ... 6=Minggu
+STORE_LAT, STORE_LON = -3.033660, 104.805664  # Titik koordinat presisi Workshop Palembang
+MAPS_URL = f"https://maps.google.com/?q={STORE_LAT},{STORE_LON}"
+
 DATA_DIR = "data"
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 REVIEWS_FILE = os.path.join(DATA_DIR, "reviews.json")
@@ -81,7 +83,6 @@ def get_image_base64(path):
 
 
 def _supabase_creds():
-    """Ambil kredensial Supabase dari st.secrets atau environment variable."""
     try:
         url = st.secrets.get("SUPABASE_URL", "").rstrip("/")
         key = st.secrets.get("SUPABASE_KEY", "")
@@ -100,7 +101,6 @@ def is_cloud_db_active():
 
 
 def load_json(path, default):
-    """Baca dari Supabase Cloud jika aktif, fallback ke file JSON lokal."""
     db_key = os.path.basename(path)
     url, key = _supabase_creds()
 
@@ -134,7 +134,6 @@ def load_json(path, default):
 
 
 def save_json(path, data):
-    """Simpan ke Supabase Cloud (Upsert) sekaligus simpan cadangan di file lokal."""
     db_key = os.path.basename(path)
     url, key = _supabase_creds()
     cloud_saved = False
@@ -209,10 +208,10 @@ def calc_pkg_install_price(game_count):
 
 
 # =====================================================================
-# LOGO STIK DS4 & TIPOGRAFI MEDY5TATION (SESUAI GAMBAR BARU)
+# LOGO STIK DS4 & TIPOGRAFI PRESISI (SESUAI GAMBAR REFERENSI)
 # =====================================================================
 CONTROLLER_SVG = """
-<svg class="controller-logo" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Stik MEDY5TATION">
+<svg class="controller-logo" viewBox="42 20 276 188" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Stik MEDY5TATION">
   <!-- Bumper L1 & R1 -->
   <path d="M 82 40 C 86 24, 118 24, 126 38" fill="none" stroke="#d92b5a" stroke-width="4" stroke-linecap="round"/>
   <path d="M 278 40 C 274 24, 242 24, 234 38" fill="none" stroke="#d92b5a" stroke-width="4" stroke-linecap="round"/>
@@ -231,15 +230,15 @@ CONTROLLER_SVG = """
            C 72 206, 49 190, 52 160
            C 55 128, 66 82, 78 60
            C 88 44, 104 38, 126 38 Z"
-        fill="#131924" stroke="#d92b5a" stroke-width="5.5" stroke-linejoin="round"/>
+        fill="#131924" stroke="#d92b5a" stroke-width="5" stroke-linejoin="round"/>
 
   <!-- Garis Lekukan Grip Bawah -->
-  <path d="M 54 166 C 68 176, 86 174, 101 164" fill="none" stroke="#d92b5a" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M 306 166 C 292 176, 274 174, 259 164" fill="none" stroke="#d92b5a" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M 54 166 C 68 176, 86 174, 101 164" fill="none" stroke="#d92b5a" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M 306 166 C 292 176, 274 174, 259 164" fill="none" stroke="#d92b5a" stroke-width="3.2" stroke-linecap="round"/>
 
   <!-- Touchpad Tengah & Lightbar -->
-  <rect x="132" y="42" width="96" height="50" rx="6" fill="#131924" stroke="#d92b5a" stroke-width="4"/>
-  <line x1="146" y1="42" x2="214" y2="42" stroke="#f43f5e" stroke-width="5" stroke-linecap="round"/>
+  <rect x="132" y="42" width="96" height="50" rx="6" fill="#131924" stroke="#d92b5a" stroke-width="3.8"/>
+  <line x1="146" y1="42" x2="214" y2="42" stroke="#f43f5e" stroke-width="4.8" stroke-linecap="round"/>
 
   <!-- Tombol Share & Options -->
   <rect x="120" y="46" width="6" height="12" rx="3" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
@@ -253,70 +252,53 @@ CONTROLLER_SVG = """
   </g>
 
   <!-- Lingkaran Frame D-Pad (Kiri) & Action Buttons (Kanan) -->
-  <circle cx="98" cy="82" r="32" fill="#131924" stroke="#d92b5a" stroke-width="3.5"/>
-  <circle cx="262" cy="82" r="32" fill="#131924" stroke="#d92b5a" stroke-width="3.5"/>
+  <circle cx="98" cy="82" r="32" fill="#131924" stroke="#d92b5a" stroke-width="3.2"/>
+  <circle cx="262" cy="82" r="32" fill="#131924" stroke="#d92b5a" stroke-width="3.2"/>
 
-  <!-- D-Pad (Arah Kiri) -->
-  <g fill="none" stroke="#d92b5a" stroke-width="2.8" stroke-linejoin="round">
-    <!-- Atas -->
+  <!-- D-Pad -->
+  <g fill="none" stroke="#d92b5a" stroke-width="2.6" stroke-linejoin="round">
     <path d="M 93 57 L 103 57 L 103 70 L 98 75 L 93 70 Z"/>
-    <!-- Bawah -->
     <path d="M 93 107 L 103 107 L 103 94 L 98 89 L 93 94 Z"/>
-    <!-- Kiri -->
     <path d="M 73 77 L 73 87 L 86 87 L 91 82 L 86 77 Z"/>
-    <!-- Kanan -->
     <path d="M 123 77 L 123 87 L 110 87 L 105 82 L 110 77 Z"/>
   </g>
 
-  <!-- Tombol Action (Segitiga Toska/Hijau, Bulat/Kotak/Silang Merah) -->
-  <!-- Atas: Segitiga -->
+  <!-- Tombol Action -->
   <circle cx="262" cy="61" r="8.5" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
   <polygon points="262,55.5 257,64.5 267,64.5" fill="none" stroke="#2dd4bf" stroke-width="2.2" stroke-linejoin="round"/>
-  <!-- Bawah: Silang (X) -->
   <circle cx="262" cy="103" r="8.5" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
   <path d="M 258.5 99.5 L 265.5 106.5 M 265.5 99.5 L 258.5 106.5" stroke="#d92b5a" stroke-width="2.2" stroke-linecap="round"/>
-  <!-- Kiri: Kotak -->
   <circle cx="241" cy="82" r="8.5" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
   <rect x="237" y="78" width="8" height="8" rx="1" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
-  <!-- Kanan: Lingkaran -->
   <circle cx="283" cy="82" r="8.5" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
   <circle cx="283" cy="82" r="4.5" fill="none" stroke="#d92b5a" stroke-width="2.2"/>
 
-  <!-- Analog Kiri & Kanan (Multi-Ring) -->
+  <!-- Analog Kiri & Kanan -->
   <g fill="#131924">
-    <circle cx="142" cy="120" r="22" stroke="#d92b5a" stroke-width="4.5"/>
-    <circle cx="142" cy="120" r="14" stroke="#d92b5a" stroke-width="3"/>
-    <circle cx="142" cy="120" r="9" stroke="#d92b5a" stroke-width="1.8"/>
+    <circle cx="142" cy="120" r="22" stroke="#d92b5a" stroke-width="4.2"/>
+    <circle cx="142" cy="120" r="14" stroke="#d92b5a" stroke-width="2.8"/>
+    <circle cx="142" cy="120" r="9" stroke="#d92b5a" stroke-width="1.6"/>
 
-    <circle cx="218" cy="120" r="22" stroke="#d92b5a" stroke-width="4.5"/>
-    <circle cx="218" cy="120" r="14" stroke="#d92b5a" stroke-width="3"/>
-    <circle cx="218" cy="120" r="9" stroke="#d92b5a" stroke-width="1.8"/>
+    <circle cx="218" cy="120" r="22" stroke="#d92b5a" stroke-width="4.2"/>
+    <circle cx="218" cy="120" r="14" stroke="#d92b5a" stroke-width="2.8"/>
+    <circle cx="218" cy="120" r="9" stroke="#d92b5a" stroke-width="1.6"/>
   </g>
 
   <!-- Tombol PS di Tengah Analog -->
-  <rect x="173" y="116" width="14" height="13" rx="3" fill="#131924" stroke="#d92b5a" stroke-width="2.5"/>
-  <path d="M 177 125 L 177 119 L 181 119 C 183 119, 183 122, 181 122 L 177 122 M 180 124 L 184 124" fill="none" stroke="#d92b5a" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="173" y="116" width="14" height="13" rx="3" fill="#131924" stroke="#d92b5a" stroke-width="2.2"/>
+  <path d="M 177 125 L 177 119 L 181 119 C 183 119, 183 122, 181 122 L 177 122 M 180 124 L 184 124" fill="none" stroke="#d92b5a" stroke-width="1.5" stroke-linecap="round"/>
 </svg>
 """
 
-# Tipografi SVG "MEDY5TATION" dengan huruf 'D' terbuka di sisi kiri persis seperti gambar
-BRAND_WORDMARK_SVG = """
-<svg class="brand-wordmark" viewBox="0 0 540 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MEDY5TATION">
-  <style>
-    .md-txt { font-family: 'Kanit', 'Montserrat', sans-serif; font-size: 46px; font-weight: 800; fill: #ffffff; letter-spacing: 3px; }
-  </style>
-  <!-- M E -->
-  <text x="22" y="44" class="md-txt">ME</text>
-  <!-- Huruf D Custom (Tanpa garis vertikal kiri, melengkung seperti di gambar) -->
-  <path d="M 108 13.5 L 130 13.5 C 142 13.5, 149 20, 149 28.5 C 149 37, 142 43.5, 130 43.5 L 108 43.5"
-        fill="none" stroke="#ffffff" stroke-width="7.5" stroke-linecap="butt" stroke-linejoin="round"/>
-  <!-- Y 5 T A T I O N -->
-  <text x="158" y="44" class="md-txt">Y5TATION</text>
-</svg>
+# Wordmark HTML + Inline SVG untuk huruf 'D' terbuka agar rata tengah & kerning rapat sempurna
+BRAND_WORDMARK_HTML = """
+<div class="md-wordmark" aria-label="MEDY5TATION">
+    <span>ME</span><svg class="md-d-glyph" viewBox="0 0 32 36" xmlns="http://www.w3.org/2000/svg"><path d="M 2 4.5 L 16 4.5 C 24.5 4.5, 29 10, 29 18 C 29 26, 24.5 31.5, 16 31.5 L 2 31.5" fill="none" stroke="#ffffff" stroke-width="6.8" stroke-linecap="butt" stroke-linejoin="round"/></svg><span>Y5TATION</span>
+</div>
 """
 
 # =====================================================================
-# STYLING (DARK NAVY & CRIMSON NEON SESUAI TEMA GAMBAR)
+# STYLING (BEBAS BUG FONT MATERIAL ICON & PROPORSIONAL)
 # =====================================================================
 def set_page_styling():
     st.set_page_config(
@@ -331,29 +313,61 @@ def set_page_styling():
     )
     custom_css = """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800&family=Satisfy&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800&family=Montserrat:wght@800;900&family=Satisfy&display=swap');
 
         .stApp { background-color: #131924 !important; color: #ffffff !important; font-family: 'Kanit', sans-serif !important; }
-        .stApp label, .stApp p, .stApp span, .stApp li { font-family: 'Kanit', sans-serif; }
+        /* PENTING: Jangan timpa span semua elemen agar Material Icons (_arrow_right) tidak rusak! */
+        .stApp label, .stApp p, .stApp li { font-family: 'Kanit', sans-serif; }
+        [data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; }
 
-        .brand-container { text-align: center; padding: 10px 0 4px 0; }
-        .controller-logo {
-            width: 220px; max-width: 75%; height: auto; display: block; margin: 0 auto 4px auto;
-            filter: drop-shadow(0 0 14px rgba(217, 43, 90, 0.35));
+        /* Container Logo & Wordmark Proporsional Sesuai Gambar */
+        .brand-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6px 0 4px 0;
         }
-        .brand-wordmark {
-            width: 340px; max-width: 92%; height: auto; display: block; margin: 2px auto 0 auto;
+        .controller-logo {
+            width: 175px;
+            max-width: 62%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            filter: drop-shadow(0 0 10px rgba(217, 43, 90, 0.28));
         }
         @media (prefers-reduced-motion: no-preference) {
             .controller-logo { animation: mdFloat 4s ease-in-out infinite; }
-            @keyframes mdFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+            @keyframes mdFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         }
-        .brand-logo-img { max-width: 240px; width: 100%; height: auto; border-radius: 14px; display: block; margin: 0 auto 8px auto; }
-        .cursive-title { font-family: 'Satisfy', cursive !important; color: #d92b5a !important; font-size: 2.6rem; line-height: 1.1; margin: 0; text-align: left; }
-        .cursive-subtitle { font-family: 'Satisfy', cursive !important; color: #05d9e8 !important; font-size: 2.2rem; line-height: 1.1; margin: 0; text-align: right; }
-        .brand-subtitle { font-size: .9rem; letter-spacing: 4px; color: #94a3b8; margin-top: 6px; margin-bottom: 18px; font-weight: 700; }
+        .md-wordmark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Montserrat', 'Kanit', sans-serif !important;
+            font-size: 2.35rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 2.5px;
+            line-height: 1;
+            margin: 0 auto;
+        }
+        .md-wordmark span {
+            font-family: 'Montserrat', 'Kanit', sans-serif !important;
+        }
+        .md-d-glyph {
+            height: 0.77em;
+            width: auto;
+            margin: 0 3px 0 1px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .cursive-title { font-family: 'Satisfy', cursive !important; color: #d92b5a !important; font-size: 2.5rem; line-height: 1.1; margin: 0; text-align: left; }
+        .cursive-subtitle { font-family: 'Satisfy', cursive !important; color: #05d9e8 !important; font-size: 2.1rem; line-height: 1.1; margin: 0; text-align: right; }
+        .brand-subtitle { font-size: .82rem; letter-spacing: 4.5px; color: #94a3b8; margin-top: 10px; margin-bottom: 14px; font-weight: 700; text-align: center; }
 
-        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: .85rem; font-weight: 600; border: 1px solid; }
+        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; font-size: .84rem; font-weight: 600; border: 1px solid; }
         .status-open { color: #10b981; border-color: #10b981; background: rgba(16,185,129,.08); }
         .status-closed { color: #f87171; border-color: #f87171; background: rgba(248,113,113,.08); }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
@@ -363,9 +377,9 @@ def set_page_styling():
 
         div[data-baseweb="tab-list"] { gap: 8px !important; justify-content: flex-start !important; padding-bottom: 10px !important; border-bottom: 1px solid #1e293b !important; background: transparent !important; overflow-x: auto; }
         div[data-baseweb="tab"] { background: #0d121b !important; border: 1px solid #1e293b !important; border-radius: 8px !important; padding: 8px 14px !important; white-space: nowrap; transition: all .2s; }
-        div[data-baseweb="tab"] p, div[data-baseweb="tab"] span { color: #cbd5e1 !important; font-weight: 600 !important; font-size: .9rem !important; }
+        div[data-baseweb="tab"] p { color: #cbd5e1 !important; font-weight: 600 !important; font-size: .9rem !important; }
         div[data-baseweb="tab"][aria-selected="true"] { border-color: #d92b5a !important; background: rgba(217,43,90,.14) !important; }
-        div[data-baseweb="tab"][aria-selected="true"] p, div[data-baseweb="tab"][aria-selected="true"] span { color: #ff2a6d !important; font-weight: 700 !important; }
+        div[data-baseweb="tab"][aria-selected="true"] p { color: #ff2a6d !important; font-weight: 700 !important; }
         div[data-baseweb="tab-highlight"] { display: none !important; }
 
         .card-box { border-radius: 14px; padding: 22px 18px; margin-bottom: 15px; height: 100%; background-color: #0d121b; color: #fff; transition: transform .2s, box-shadow .2s; }
@@ -389,6 +403,47 @@ def set_page_styling():
 
         .hdd-bar-wrap { background: #1e293b; border-radius: 99px; height: 14px; width: 100%; overflow: hidden; margin: 8px 0; }
         .hdd-bar-fill { height: 100%; background: linear-gradient(90deg, #05d9e8, #d92b5a); transition: width .3s ease; }
+
+        /* Custom Accordion FAQ (Bebas Bug _arrow_right Streamlit) */
+        details.faq-box {
+            background: #0d121b;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            transition: border-color .2s;
+        }
+        details.faq-box[open] {
+            border-color: #d92b5a;
+        }
+        details.faq-box summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: .94rem;
+            color: #f8fafc;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        details.faq-box summary::-webkit-details-marker { display: none; }
+        details.faq-box summary::after {
+            content: "▾";
+            color: #d92b5a;
+            font-size: 1.1rem;
+            transition: transform .2s;
+        }
+        details.faq-box[open] summary::after {
+            transform: rotate(180deg);
+        }
+        details.faq-box .faq-ans {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #1e293b;
+            color: #cbd5e1;
+            font-size: .88rem;
+            line-height: 1.55;
+        }
 
         .social-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-weight: 600; text-decoration: none !important; font-size: .9rem; margin-bottom: 8px; width: 100%; text-align: center; }
         .btn-wa { background-color: #25D366; color: #fff !important; }
@@ -494,7 +549,7 @@ FAQ = [
     ("Kapan sebaiknya ganti pasta thermal?",
      "Jika kipas makin bising, mesin cepat panas, atau game mulai patah-patah dan konsol mati sendiri."),
     ("Bagaimana cara order game Sub Indo?",
-     "Bisa langsung centang judul game di tab Katalog & Pilih Game, pilih metode (Via Drive / Install di PS / Paket HDD), lalu klik pesan via WhatsApp."),
+     "Bisa langsung pilih judul game di tab Katalog & Pilih Game, pilih metode (Via Drive / Install di PS / Paket HDD), lalu klik pesan via WhatsApp."),
 ]
 
 TROUBLESHOOT = {
@@ -535,12 +590,11 @@ def render_header():
     with col_h1:
         st.markdown('<p class="cursive-title">Good Games<br>Better Days</p>', unsafe_allow_html=True)
     with col_h2:
-        # Render langsung SVG Stik DS4 Merah + Tipografi MEDY5TATION sesuai gambar baru
         html_block(
             f'<div class="brand-container">'
             f'{CONTROLLER_SVG}'
-            f'{BRAND_WORDMARK_SVG}'
-            f'<div class="brand-subtitle">PLAY MORE • GAME TOGETHER</div>'
+            f'{BRAND_WORDMARK_HTML}'
+            f'<div class="brand-subtitle">PLAY MORE &bull; GAME TOGETHER</div>'
             f'</div>'
         )
     with col_h3:
@@ -658,14 +712,15 @@ def tab_games():
     if "cart_games" not in st.session_state:
         st.session_state["cart_games"] = []
 
-    with st.expander("🛒 **Keranjang Pilih Game & Simulator Kapasitas HDD** (Klik untuk buka/tutup)", expanded=bool(st.session_state["cart_games"])):
+    st.markdown("#### 🛒 Keranjang Pilih Game & Simulator Kapasitas HDD")
+    with st.container():
         col_b1, col_b2 = st.columns([2, 1.2])
         with col_b1:
             selected = st.multiselect(
                 "Pilih game yang ingin kamu pesan / masukkan ke HDD:",
                 options=PS4_GAMES,
                 default=st.session_state["cart_games"],
-                placeholder="Ketik atau pilih beberapa judul game...",
+                placeholder="Ketik atau pilih beberapa judul game di sini...",
             )
             st.session_state["cart_games"] = selected
 
@@ -719,6 +774,8 @@ def tab_games():
                     f"Daftar Game:\n{game_list_str}"
                 )
                 st.link_button("📲 Pesan Daftar Game Ini via WhatsApp", wa_link(wa_msg), use_container_width=True)
+
+    st.markdown('<hr style="border-color:#1e293b;margin:18px 0;">', unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([2.2, 1.2, 1])
     with c1:
@@ -1013,14 +1070,14 @@ def tab_status():
         </div>''')
 
     if o.get("riwayat"):
-        with st.expander("🕒 Lihat Riwayat Update Tiket", expanded=True):
-            for log in reversed(o["riwayat"]):
-                html_block(f'''
-                    <div class="log-item">
-                        <b style="color:#05d9e8;">{html.escape(log.get("status", ""))}</b> — <small>{html.escape(log.get("waktu", ""))}</small><br>
-                        <span>{html.escape(log.get("ket", ""))}</span>
-                    </div>
-                ''')
+        st.markdown("##### 🕒 Riwayat Update Tiket")
+        for log in reversed(o["riwayat"]):
+            html_block(f'''
+                <div class="log-item">
+                    <b style="color:#05d9e8;">{html.escape(log.get("status", ""))}</b> — <small>{html.escape(log.get("waktu", ""))}</small><br>
+                    <span>{html.escape(log.get("ket", ""))}</span>
+                </div>
+            ''')
 
     c_btn1, c_btn2 = st.columns(2)
     with c_btn1:
@@ -1030,30 +1087,47 @@ def tab_status():
         st.download_button("🧾 Unduh Struk / Nota Digital (HTML)", receipt_html, file_name=f"Nota_{code}.html", mime="text/html", use_container_width=True)
 
 
-# ---------------- Tab 8: Bantuan & Lokasi ----------------
+# ---------------- Tab 8: Bantuan & Lokasi (FIXED FAQ & MAPS PRESISI) ----------------
 def tab_bantuan():
     st.write("")
-    c1, c2 = st.columns([3, 2])
+    c1, c2 = st.columns([3, 2.2])
     with c1:
         st.subheader("❓ Pertanyaan Umum (FAQ)")
         for q, a in FAQ:
-            with st.expander(q):
-                st.write(a)
+            html_block(f'''
+                <details class="faq-box">
+                    <summary>{html.escape(q)}</summary>
+                    <div class="faq-ans">{html.escape(a)}</div>
+                </details>
+            ''')
+
+        st.write("")
         st.subheader("🩺 Diagnosa Mandiri Kerusakan Konsol")
         masalah = st.selectbox("Pilih gejala yang kamu alami:", list(TROUBLESHOOT.keys()))
         for step in TROUBLESHOOT[masalah]:
             st.markdown(f"- {step}")
         st.caption("Jika langkah di atas belum menyelesaikan masalah, silakan buat tiket di tab Booking Servis.")
+
     with c2:
         st.subheader("📍 Lokasi Workshop & Jam Operasional")
         html_block(f'''
             <div class="card-box border-purple" style="height:auto;">
                 <b><i class="bi bi-geo-alt-fill" style="color:#d92b5a;"></i> TEGAL BINANGUN SASANA PATRA</b>
-                <p style="color:#94a3b8;margin:4px 0 10px 0;">Plaju / Jakabaring, Kota Palembang, Sumatera Selatan</p>
+                <p style="color:#94a3b8;margin:4px 0 6px 0;">Plaju / Jakabaring, Palembang, Sumatera Selatan</p>
+                <p style="color:#05d9e8;font-size:.82rem;margin:0 0 8px 0;">📌 Koordinat: {STORE_LAT}, {STORE_LON}</p>
                 <p style="margin:0;">🕒 Jam Operasional: <b>{OPEN_HOUR}:00 – {CLOSE_HOUR}:00 WIB</b> (Setiap Hari)</p>
             </div>''')
-        st.map({"lat": [STORE_LAT], "lon": [STORE_LON]}, zoom=12)
-        st.link_button("🗺️ Minta Shareloc Presisi via WhatsApp", wa_link("Halo MEDY5TATION, boleh minta shareloc workshop Tegal Binangun?"), use_container_width=True)
+
+        # Embed Google Maps Presisi dengan Pin Merah tepat di -3.033660, 104.805664
+        html_block(f'''
+            <div style="border-radius:14px;overflow:hidden;border:1.5px solid #1e293b;margin-bottom:12px;">
+                <iframe
+                    src="https://maps.google.com/maps?q={STORE_LAT},{STORE_LON}&hl=id&z=16&output=embed"
+                    width="100%" height="290" style="border:0;display:block;" allowfullscreen="" loading="lazy">
+                </iframe>
+            </div>
+        ''')
+        st.link_button("🗺️ Buka Titik Lokasi di Google Maps", MAPS_URL, use_container_width=True)
 
 
 # ---------------- Tab 9: Testimoni Pelanggan ----------------
@@ -1276,12 +1350,15 @@ def render_footer():
     st.markdown('<hr style="border-color:#1e293b;margin:35px 0 25px 0;">', unsafe_allow_html=True)
     sec_lokasi, sec_order, sec_social = st.columns([1.5, 2, 2.5])
     with sec_lokasi:
-        html_block('''
+        html_block(f'''
             <div style="margin-bottom:8px;">
                 <small style="color:#94a3b8;letter-spacing:1px;font-weight:700;">LOKASI WORKSHOP</small>
                 <div style="font-weight:800;font-size:1.25rem;margin-top:4px;">
                     <i class="bi bi-geo-alt-fill" style="color:#d92b5a;"></i> PALEMBANG</div>
                 <div style="font-size:.88rem;color:#94a3b8;margin-top:2px;">TEGAL BINANGUN SASANA PATRA</div>
+                <a href="{MAPS_URL}" target="_blank" style="display:inline-block;margin-top:8px;color:#05d9e8;font-size:.82rem;text-decoration:none;font-weight:600;">
+                    <i class="bi bi-map"></i> Lihat di Google Maps &rarr;
+                </a>
             </div>''')
     with sec_order:
         html_block(f'''
