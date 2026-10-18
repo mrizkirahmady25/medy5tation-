@@ -16,12 +16,12 @@ except Exception:  # pragma: no cover
     WIB = None
 
 # =====================================================================
-# KONFIGURASI TOKO  (ubah di sini)
+# KONFIGURASI TOKO (Ubah sesuai kebutuhan)
 # =====================================================================
 WA_NUMBER = "6282289421650"
-OPEN_HOUR, CLOSE_HOUR = 10, 21          # jam buka toko (WIB)
+OPEN_HOUR, CLOSE_HOUR = 10, 21          # Jam buka toko (WIB)
 OPEN_DAYS = [0, 1, 2, 3, 4, 5, 6]       # 0=Senin ... 6=Minggu
-STORE_LAT, STORE_LON = -2.9761, 104.7754  # titik peta (sesuaikan dengan lokasi workshop)
+STORE_LAT, STORE_LON = -2.9761, 104.7754  # Titik koordinat peta Palembang
 DATA_DIR = "data"
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 REVIEWS_FILE = os.path.join(DATA_DIR, "reviews.json")
@@ -37,18 +37,28 @@ STATUS_FLOW = [
 
 SERVICES = {
     "Jasa HEN PS4": 50_000,
-    "Ganti Pasta Thermal": 250_000,
+    "Ganti Pasta Thermal + Deep Clean": 250_000,
+    "Paket HDD Eksternal 500GB Full Game": 350_000,
+    "Paket HDD Eksternal 1TB Full Game": 550_000,
+}
+
+PROMO_CODES = {
+    "MEDY5HEMAT": ("Diskon Rp 15.000", 15_000),
+    "PALEMBANGGG": ("Diskon Rp 10.000", 10_000),
 }
 
 # =====================================================================
-# UTILITAS
+# UTILITAS & DATABASE LOKAL
 # =====================================================================
 def now():
     return datetime.now(WIB) if WIB else datetime.now()
 
 
 def rupiah(n):
-    return "Rp " + f"{int(n):,}".replace(",", ".")
+    try:
+        return "Rp " + f"{int(n):,}".replace(",", ".")
+    except Exception:
+        return "Rp 0"
 
 
 def wa_link(text=""):
@@ -111,6 +121,15 @@ def store_status():
     return is_open, t
 
 
+def calc_pkg_install_price(game_count):
+    """Hitung harga install langsung ke PS: 1 game 25k, promo tiap kelipatan 3 game = 65k."""
+    if game_count <= 0:
+        return 0
+    bundles = game_count // 3
+    remainder = game_count % 3
+    return (bundles * 65_000) + (remainder * 25_000)
+
+
 # =====================================================================
 # LOGO STIK (SVG)
 # =====================================================================
@@ -148,7 +167,7 @@ CONTROLLER_SVG = """
 """
 
 # =====================================================================
-# STYLING
+# STYLING (CYBERPUNK DARK NEON)
 # =====================================================================
 def set_page_styling():
     st.set_page_config(
@@ -192,14 +211,15 @@ def set_page_styling():
         .feature-bar { display: flex; justify-content: space-around; text-align: center; margin-bottom: 25px; flex-wrap: wrap; gap: 12px; background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 14px 10px; }
         .feature-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #e2e8f0; font-size: .8rem; font-weight: 600; }
 
-        div[data-baseweb="tab-list"] { gap: 10px !important; justify-content: flex-start !important; padding-bottom: 10px !important; border-bottom: 1px solid #1f2937 !important; background: transparent !important; overflow-x: auto; }
-        div[data-baseweb="tab"] { background: transparent !important; border: none !important; padding: 8px 12px !important; white-space: nowrap; }
-        div[data-baseweb="tab"] p, div[data-baseweb="tab"] span { color: #cbd5e1 !important; font-weight: 600 !important; font-size: .92rem !important; }
+        div[data-baseweb="tab-list"] { gap: 8px !important; justify-content: flex-start !important; padding-bottom: 10px !important; border-bottom: 1px solid #1f2937 !important; background: transparent !important; overflow-x: auto; }
+        div[data-baseweb="tab"] { background: #111827 !important; border: 1px solid #1f2937 !important; border-radius: 8px !important; padding: 8px 14px !important; white-space: nowrap; transition: all .2s; }
+        div[data-baseweb="tab"] p, div[data-baseweb="tab"] span { color: #cbd5e1 !important; font-weight: 600 !important; font-size: .9rem !important; }
+        div[data-baseweb="tab"][aria-selected="true"] { border-color: #ff2a6d !important; background: rgba(255,42,109,.12) !important; }
         div[data-baseweb="tab"][aria-selected="true"] p, div[data-baseweb="tab"][aria-selected="true"] span { color: #ff2a6d !important; font-weight: 700 !important; }
-        div[data-baseweb="tab-highlight"] { background-color: #ff2a6d !important; height: 2px !important; }
+        div[data-baseweb="tab-highlight"] { display: none !important; }
 
-        .card-box { border-radius: 14px; padding: 22px 18px; margin-bottom: 15px; height: 100%; background-color: #111827; color: #fff; transition: transform .2s; }
-        .card-box:hover { transform: translateY(-3px); }
+        .card-box { border-radius: 14px; padding: 22px 18px; margin-bottom: 15px; height: 100%; background-color: #111827; color: #fff; transition: transform .2s, box-shadow .2s; }
+        .card-box:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
         .border-cyan { border: 1.5px solid #05d9e8 !important; }
         .border-pink { border: 1.5px solid #ff2a6d !important; }
         .border-purple { border: 1.5px solid #a855f7 !important; }
@@ -210,11 +230,15 @@ def set_page_styling():
         .price-badge-purple { color: #c084fc !important; font-size: 1.6rem; font-weight: 800; }
         .promo-banner { background: linear-gradient(90deg,#ff2a6d,#d91b5c); color: #fff; font-size: .8rem; font-weight: 700; padding: 6px; border-radius: 6px; margin-top: 12px; letter-spacing: .5px; }
 
-        .list-item-dark { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; font-size: .88rem; color: #fff; }
+        .list-item-dark { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; font-size: .88rem; color: #fff; display: flex; justify-content: space-between; align-items: center; }
 
-        .game-badge { background-color: #111827 !important; border: 1px solid #1f2937 !important; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: .85rem; display: flex; align-items: center; gap: 8px; }
-        .game-badge:hover { border-color: #ff2a6d !important; background-color: #1f2937 !important; }
-        .game-num { color: #ff2a6d !important; font-weight: 800; font-size: .85rem; min-width: 28px; }
+        .game-badge { background-color: #111827 !important; border: 1px solid #1f2937 !important; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: .85rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all .15s; }
+        .game-badge:hover { border-color: #05d9e8 !important; background-color: #161f33 !important; }
+        .game-num { color: #ff2a6d !important; font-weight: 800; font-size: .82rem; min-width: 28px; }
+        .size-pill { background: rgba(5,217,232,.12); color: #05d9e8; border: 1px solid rgba(5,217,232,.3); padding: 2px 7px; border-radius: 99px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+
+        .hdd-bar-wrap { background: #1f2937; border-radius: 99px; height: 14px; width: 100%; overflow: hidden; margin: 8px 0; }
+        .hdd-bar-fill { height: 100%; background: linear-gradient(90deg, #05d9e8, #ff2a6d); transition: width .3s ease; }
 
         .social-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-weight: 600; text-decoration: none !important; font-size: .9rem; margin-bottom: 8px; width: 100%; text-align: center; }
         .btn-wa { background-color: #25D366; color: #fff !important; }
@@ -223,18 +247,19 @@ def set_page_styling():
         .btn-ig { background: linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color: #fff !important; }
         .btn-yt { background-color: #f00; color: #fff !important; }
 
-        /* Tracker */
+        /* Tracker & Timeline */
         .track { display: flex; gap: 6px; margin: 14px 0 6px 0; }
         .track .step { flex: 1; height: 8px; border-radius: 4px; background: #1f2937; }
         .track .step.done { background: linear-gradient(90deg,#ff2a6d,#05d9e8); }
-        .ticket-code { font-size: 2rem; font-weight: 800; letter-spacing: 3px; color: #05d9e8; }
+        .ticket-code { font-size: 2.1rem; font-weight: 800; letter-spacing: 3px; color: #05d9e8; }
+        .log-item { border-left: 2px solid #05d9e8; padding-left: 12px; margin-bottom: 8px; font-size: .83rem; color: #cbd5e1; }
 
         .review { background: #111827; border: 1px solid #1f2937; border-left: 3px solid #ff2a6d; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
-        .review .stars { color: #f59e0b; letter-spacing: 2px; }
+        .review .stars { color: #f59e0b; letter-spacing: 2px; font-size: 1.05rem; }
         .review small { color: #94a3b8; }
 
-        .total-box { background: #111827; border: 1.5px solid #05d9e8; border-radius: 14px; padding: 18px; text-align: center; }
-        .total-box .amount { font-size: 2.4rem; font-weight: 800; color: #05d9e8; }
+        .total-box { background: #111827; border: 1.5px solid #05d9e8; border-radius: 14px; padding: 18px; text-align: center; margin-bottom: 12px; }
+        .total-box .amount { font-size: 2.2rem; font-weight: 800; color: #05d9e8; }
 
         /* Tombol WhatsApp melayang */
         .wa-float { position: fixed; right: 18px; bottom: 18px; z-index: 9999; background: #25D366; color: #fff !important; width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; text-decoration: none !important; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
@@ -247,7 +272,7 @@ def set_page_styling():
 
 
 # =====================================================================
-# DATA KATALOG
+# DATA KATALOG & META UKURAN GAME
 # =====================================================================
 PS4_GAMES = [
     "GOW 3", "GTA 5 MOD SUB INDO", "THE LAST OF US 1", "THE LAST OF US 2", "NARUTO CONNECTION",
@@ -267,6 +292,33 @@ PS4_GAMES = [
     "Death Door", "One piece Oddysey", "Yakuza 3", "Control", "Judghment",
     "Horizon zero down", "Spiderman", "Spiderman Miles morales", "detroit", "death stranding",
 ]
+
+# Estimasi ukuran GB & kategori otomatis untuk fitur Simulator HDD
+def get_game_meta(title):
+    t = title.lower()
+    if any(k in t for k in ["ragnarok", "tlou 2", "last of us 2", "valhala", "cyberpunk", "jedi survivor", "oddysey"]):
+        size = 85
+    elif any(k in t for k in ["gta 5", "god of war 2018", "days gone", "hogwarts", "elden", "spiderman", "horizon", "ghost of", "uncharted 4", "witcher", "death stranding", "mortal kombat"]):
+        size = 52
+    elif any(k in t for k in ["resident evil", "assassin", "mafia", "devil may cry", "it takes two", "bloodborne", "calisto", "dead island", "naruto", "nier", "persona", "control", "judghment"]):
+        size = 34
+    elif any(k in t for k in ["stray", "sifu", "kena", "harvest moon", "stody of season", "bayonetta", "visage", "fatal frame", "death door", "tomb raider"]):
+        size = 14
+    else:
+        size = 25
+
+    if any(k in t for k in ["resident evil", "visage", "fatal frame", "calisto", "dead island", "last of us"]):
+        cat = "Horror / Survival"
+    elif any(k in t for k in ["assassin", "gta", "watch", "sleeping dog", "cyberpunk", "mafia", "horizon", "ghost", "spiderman", "days gone", "witcher"]):
+        cat = "Open World / Action"
+    elif any(k in t for k in ["it takes two", "a way out", "naruto", "mortal kombat", "basara", "lego"]):
+        cat = "Co-op / Multiplayer"
+    elif any(k in t for k in ["elden", "sekiro", "bloodborne", "lies", "persona", "one piece", "hogwarts"]):
+        cat = "RPG / Adventure"
+    else:
+        cat = "Action / Story"
+    return size, cat
+
 
 PS4_HEN_UPDATES = [
     "Monster patch summer 2027",
@@ -291,8 +343,8 @@ FAQ = [
      "Instalasi sistem HEN, setting dan tes game lengkap, serta panduan pemakaian sampai paham."),
     ("Kapan sebaiknya ganti pasta thermal?",
      "Jika kipas makin bising, mesin cepat panas, atau game mulai patah-patah dan konsol mati sendiri."),
-    ("Bagaimana cara order?",
-     "Lewat tab Booking Servis, tombol WhatsApp, atau Shopee Store. Datang langsung ke workshop juga bisa pada jam buka."),
+    ("Bagaimana cara order game Sub Indo?",
+     "Bisa langsung centang judul game di tab List Game Sub Indo, pilih metode (Via Drive / Install di PS / Paket HDD), lalu klik pesan via WhatsApp."),
 ]
 
 TROUBLESHOOT = {
@@ -303,30 +355,30 @@ TROUBLESHOOT = {
         "Jika masih panas atau bising, kemungkinan pasta thermal sudah kering dan perlu diganti.",
     ],
     "Stik drift (kursor bergerak sendiri)": [
-        "Masuk Settings > Devices > Controllers dan cek apakah gerakan muncul tanpa disentuh.",
+        "Masuk Settings - Devices - Controllers dan cek apakah gerakan muncul tanpa disentuh.",
         "Matikan stik, lepas dari charger, lalu tekan tombol reset kecil di bagian belakang stik.",
         "Bersihkan area sekitar analog dengan isopropil alkohol.",
         "Jika masih drift, modul analog biasanya perlu diganti lewat Servis Stik.",
     ],
     "Stik tidak mau connect / cepat habis": [
-        "Pakai kabel USB yang bagus, sambungkan ke konsol, lalu tekan tombol PS.",
+        "Pakai kabel USB data yang bagus, sambungkan ke konsol, lalu tekan tombol PS.",
         "Lakukan reset stik dengan jarum pada lubang reset di belakang.",
         "Baterai yang drop cepat biasanya perlu diganti.",
     ],
     "Konsol mati sendiri saat main": [
         "Cek suhu dan ventilasi lebih dulu.",
-        "Coba kabel power lain dan stop kontak lain.",
-        "Jika berulang, bawa untuk dicek: bisa karena panas berlebih atau masalah power supply.",
+        "Coba kabel power lain dan stop kontak lain (hindari colokan bertumpuk).",
+        "Jika berulang, bawa untuk dicek: bisa karena overheat APU atau masalah power supply (PSU).",
     ],
     "Download / loading game lambat": [
-        "Cek ruang penyimpanan, kosongkan jika hampir penuh.",
-        "Gunakan kabel LAN, bukan Wi-Fi, untuk download.",
-        "HDD lama yang sudah melambat bisa diganti SSD atau HDD baru.",
+        "Cek ruang penyimpanan, sisakan minimal 15-20% ruang kosong.",
+        "Gunakan kabel LAN jika memungkinkan untuk koneksi lebih stabil.",
+        "HDD internal yang sudah lemah (health turun) bisa diganti SSD atau HDD baru.",
     ],
 }
 
 # =====================================================================
-# KOMPONEN HALAMAN
+# KOMPONEN HALAMAN UTAMA
 # =====================================================================
 def render_header():
     col_h1, col_h2, col_h3 = st.columns([1.2, 3, 1.2])
@@ -359,37 +411,38 @@ def render_header():
         )
 
     is_open, t = store_status()
-    cls, label = ("status-open", f"Buka sekarang · tutup {CLOSE_HOUR}:00 WIB") if is_open else (
-        "status-closed", f"Tutup · buka {OPEN_HOUR}:00 WIB")
+    cls, label = ("status-open", f"Workshop Buka · Tutup {CLOSE_HOUR}:00 WIB") if is_open else (
+        "status-closed", f"Workshop Tutup · Buka {OPEN_HOUR}:00 WIB")
     html_block(
         f'<div style="text-align:center; margin-bottom:16px;">'
-        f'<span class="status-pill {cls}"><span class="dot"></span>{label}</span></div>'
+        f'<span class="status-pill {cls}"><span class="dot"></span>{label} (Waktu Lokal: {t.strftime("%H:%M")} WIB)</span></div>'
     )
 
 
 def render_feature_bar():
     html_block('''
         <div class="feature-bar">
-            <div class="feature-item"><i class="bi bi-disc" style="font-size:1.5rem;color:#ff2a6d;"></i><span>GAME ORIGINAL</span></div>
-            <div class="feature-item"><i class="bi bi-cloud-arrow-down" style="font-size:1.5rem;color:#05d9e8;"></i><span>PATCH SUB INDO</span></div>
-            <div class="feature-item"><i class="bi bi-device-hdd" style="font-size:1.5rem;color:#a855f7;"></i><span>HDD FULL GAME</span></div>
-            <div class="feature-item"><i class="bi bi-gear-wide-connected" style="font-size:1.5rem;color:#f59e0b;"></i><span>INSTAL LANGSUNG</span></div>
-            <div class="feature-item"><i class="bi bi-shield-check" style="font-size:1.5rem;color:#10b981;"></i><span>AMAN &amp; TERPERCAYA</span></div>
+            <div class="feature-item"><i class="bi bi-disc" style="font-size:1.5rem;color:#ff2a6d;"></i><span>GAME ORIGINAL &amp; HEN</span></div>
+            <div class="feature-item"><i class="bi bi-translate" style="font-size:1.5rem;color:#05d9e8;"></i><span>80+ PATCH SUB INDO</span></div>
+            <div class="feature-item"><i class="bi bi-device-hdd" style="font-size:1.5rem;color:#a855f7;"></i><span>HDD FULL GAME PNP</span></div>
+            <div class="feature-item"><i class="bi bi-tools" style="font-size:1.5rem;color:#f59e0b;"></i><span>SERVIS &amp; MAINTENANCE</span></div>
+            <div class="feature-item"><i class="bi bi-shield-check" style="font-size:1.5rem;color:#10b981;"></i><span>AMAN &amp; BERGARANSI</span></div>
         </div>
     ''')
 
 
+# ---------------- Tab 1: Paket & Layanan ----------------
 def tab_paket():
     st.write("")
     p1, p2, p3 = st.columns(3)
     with p1:
         html_block('''
             <div class="card-box border-cyan" style="text-align:center;">
-                <i class="bi bi-play-circle" style="font-size:2.2rem;color:#05d9e8;"></i>
-                <div style="font-size:.95rem;font-weight:700;margin-top:10px;">VIA DRIVE</div>
+                <i class="bi bi-cloud-arrow-down-fill" style="font-size:2.2rem;color:#05d9e8;"></i>
+                <div style="font-size:.95rem;font-weight:700;margin-top:10px;">VIA GOOGLE DRIVE</div>
                 <div class="price-badge-cyan">15K</div>
                 <small style="color:#94a3b8;font-weight:600;">PER GAME</small>
-                <p style="font-size:.8rem;color:#94a3b8;margin-top:16px;">Patch Sub Indo &amp; Link Download sesuai CUSA game</p>
+                <p style="font-size:.82rem;color:#cbd5e1;margin-top:16px;">File Patch Sub Indo &amp; Link Download GDrive berkecepatan tinggi sesuai CUSA game kamu.</p>
             </div>''')
     with p2:
         html_block('''
@@ -398,13 +451,13 @@ def tab_paket():
                 <div style="font-size:.95rem;font-weight:700;margin-top:10px;">PKG &amp; INSTAL DI PS</div>
                 <div class="price-badge-pink">25K</div>
                 <small style="color:#94a3b8;font-weight:600;">PER GAME</small>
-                <div class="promo-banner">PROMO: 3 GAME 65K</div>
-                <small style="color:#94a3b8;display:block;margin-top:10px;">Lokasi Palembang</small>
+                <div class="promo-banner">🔥 PROMO: 3 GAME HANYA 65K</div>
+                <small style="color:#94a3b8;display:block;margin-top:10px;">Bawa konsol ke Workshop Palembang, terima beres siap main.</small>
             </div>''')
     with p3:
         html_block('''
             <div class="card-box border-purple" style="text-align:center;">
-                <i class="bi bi-hdd-network" style="font-size:2.2rem;color:#a855f7;"></i>
+                <i class="bi bi-hdd-network-fill" style="font-size:2.2rem;color:#a855f7;"></i>
                 <div style="font-size:.95rem;font-weight:700;margin-top:10px;">HDD FULL GAME (PKG/PNP)</div>
                 <div style="display:flex;justify-content:space-around;margin-top:12px;">
                     <div><span style="background:#fff;color:#0b0f19;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:800;">500GB</span>
@@ -412,7 +465,7 @@ def tab_paket():
                     <div><span style="background:#fff;color:#0b0f19;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:800;">1TB</span>
                     <div class="price-badge-purple" style="margin-top:4px;">550RB</div></div>
                 </div>
-                <small style="color:#94a3b8;display:block;margin-top:16px;">Plug and Play / Siap Main</small>
+                <small style="color:#94a3b8;display:block;margin-top:16px;">Bebas pilih judul game di tab Katalog sampai kapasitas penuh!</small>
             </div>''')
 
     st.write("")
@@ -424,7 +477,9 @@ def tab_paket():
                 <div style="font-size:.95rem;font-weight:700;margin-top:8px;">JASA HEN PS4</div>
                 <div class="price-badge-cyan">50K</div>
                 <ul style="font-size:.82rem;padding-left:18px;margin:10px 0 0 0;color:#cbd5e1;line-height:1.6;">
-                    <li>Install Sistem HEN</li><li>Setting &amp; Tes Game Lengkap</li><li>Panduan Pemakaian Sampai Paham</li>
+                    <li>Instalasi Sistem GoldHEN Stabil</li>
+                    <li>Setting &amp; Tes Game Lengkap</li>
+                    <li>Panduan Pemakaian Sampai Paham</li>
                 </ul>
             </div>''')
     with s2:
@@ -434,57 +489,151 @@ def tab_paket():
                 <div style="font-size:.95rem;font-weight:700;margin-top:8px;">GANTI PASTA THERMAL</div>
                 <div class="price-badge-pink">250RB</div>
                 <ul style="font-size:.82rem;padding-left:18px;margin:10px 0 0 0;color:#cbd5e1;line-height:1.6;">
-                    <li>Deep Cleaning / Pembersihan Debu Mesin</li><li>Aplikasi Thermal Paste Premium Berkualitas</li><li>Meredam Kipas Bising &amp; Mengatasi Overheat</li>
+                    <li>Deep Cleaning / Pembersihan Total Debu Heatsink</li>
+                    <li>Aplikasi Thermal Paste Kualitas Tinggi</li>
+                    <li>Meredam Kipas Bising (Jet Engine) &amp; Cegah Overheat</li>
                 </ul>
             </div>''')
     with s3:
         html_block('''
             <div class="card-box border-purple">
                 <i class="bi bi-joystick" style="font-size:1.8rem;color:#a855f7;"></i>
-                <div style="font-size:.95rem;font-weight:700;margin-top:8px;">SERVIS STIK PS4</div>
+                <div style="font-size:.95rem;font-weight:700;margin-top:8px;">SERVIS STIK PS4 / PS5</div>
                 <div class="price-badge-purple" style="margin-bottom:6px;">KONSULTASI</div>
                 <ul style="font-size:.82rem;padding-left:18px;margin:6px 0 0 0;color:#cbd5e1;line-height:1.6;">
-                    <li>Perbaikan Analog Drift / Tidak Stabil</li><li>Tombol Keras atau Tidak Responsif</li><li>Ganti Part / Jalur / Cleaning</li><li>Kustomisasi &amp; Upgrade Mod</li>
+                    <li>Perbaikan Analog Drift / Upgrade Hall Effect</li>
+                    <li>Ganti Karet Konduktif / Film PCB / Baterai</li>
+                    <li>Kustomisasi Casing &amp; Tombol</li>
                 </ul>
             </div>''')
 
 
+# ---------------- Tab 2: Katalog Game & Simulator HDD ----------------
 def tab_games():
     st.write("")
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        q = st.text_input("🔍 Cari Judul Game Patch Bahasa Indonesia:",
-                          placeholder="Contoh: God of War, Spiderman, Resident Evil...")
-    with c2:
-        sort_mode = st.selectbox("Urutkan", ["Sesuai daftar", "A → Z", "Z → A"])
+    if "cart_games" not in st.session_state:
+        st.session_state["cart_games"] = []
 
-    items = [(i + 1, g) for i, g in enumerate(PS4_GAMES)]
+    # Bagian Builder / Keranjang Pilih Game
+    with st.expander("🛒 **Keranjang Pilih Game & Simulator Kapasitas HDD** (Klik untuk buka/tutup)", expanded=bool(st.session_state["cart_games"])):
+        col_b1, col_b2 = st.columns([2, 1.2])
+        with col_b1:
+            selected = st.multiselect(
+                "Pilih game yang ingin kamu pesan / masukkan ke HDD:",
+                options=PS4_GAMES,
+                default=st.session_state["cart_games"],
+                placeholder="Ketik atau pilih beberapa judul game...",
+            )
+            st.session_state["cart_games"] = selected
+
+            mode_order = st.radio(
+                "Metode Pemesanan Game:",
+                ["Via Google Drive (15K/game)", "Install Langsung di PS (25K/game · Promo 3 Game 65K)", "Paket HDD 500GB (350RB)", "Paket HDD 1TB (550RB)"],
+                horizontal=True,
+            )
+
+        with col_b2:
+            total_gb = sum(get_game_meta(g)[0] for g in selected)
+            jml = len(selected)
+
+            if "500GB" in mode_order:
+                max_gb = 460  # Kapasitas efektif
+                est_harga = 350_000
+            elif "1TB" in mode_order:
+                max_gb = 930
+                est_harga = 550_000
+            elif "Drive" in mode_order:
+                max_gb = 0
+                est_harga = jml * 15_000
+            else:
+                max_gb = 0
+                est_harga = calc_pkg_install_price(jml)
+
+            html_block(f'''
+                <div class="total-box" style="margin-bottom:8px;">
+                    <small style="color:#94a3b8;">{jml} GAME DIPILIH (~{total_gb} GB)</small>
+                    <div class="amount">{rupiah(est_harga)}</div>
+                </div>
+            ''')
+
+            if max_gb > 0:
+                pct = min(100, int((total_gb / max_gb) * 100))
+                status_hdd = f"Terpakai ~{total_gb} GB dari {max_gb} GB ({pct}%)"
+                html_block(f'''
+                    <div class="hdd-bar-wrap"><div class="hdd-bar-fill" style="width:{pct}%;"></div></div>
+                    <small style="color:{"#f87171" if total_gb > max_gb else "#94a3b8"};">{status_hdd}</small>
+                ''')
+                if total_gb > max_gb:
+                    st.warning("Kapasitas melebihi batas efektif HDD! Kurangi beberapa game atau upgrade ke 1TB.")
+
+            if selected:
+                game_list_str = "\n".join(f"{i+1}. {g} (~{get_game_meta(g)[0]}GB)" for i, g in enumerate(selected))
+                wa_msg = (
+                    f"Halo MEDY5TATION, saya mau order game Sub Indo:\n"
+                    f"Metode: *{mode_order}*\n"
+                    f"Jumlah: {jml} Game (Estimasi ~{total_gb} GB)\n"
+                    f"Estimasi Biaya: *{rupiah(est_harga)}*\n\n"
+                    f"Daftar Game:\n{game_list_str}"
+                )
+                st.link_button("📲 Pesan Daftar Game Ini via WhatsApp", wa_link(wa_msg), use_container_width=True)
+
+    # Filter & Pencarian Katalog
+    c1, c2, c3 = st.columns([2.2, 1.2, 1])
+    with c1:
+        q = st.text_input("🔍 Cari Judul Game Patch Bahasa Indonesia:", placeholder="Contoh: God of War, Spiderman, Resident Evil...")
+    with c2:
+        cat_filter = st.selectbox("Kategori / Genre", ["Semua Genre", "Action / Story", "Open World / Action", "RPG / Adventure", "Horror / Survival", "Co-op / Multiplayer"])
+    with c3:
+        sort_mode = st.selectbox("Urutkan", ["Sesuai Daftar", "A → Z", "Z → A", "Ukuran Terbesar", "Ukuran Terkecil"])
+
+    items = []
+    for i, g in enumerate(PS4_GAMES):
+        sz, cat = get_game_meta(g)
+        items.append((i + 1, g, sz, cat))
+
     if q:
-        items = [(n, g) for n, g in items if q.lower() in g.lower()]
+        items = [x for x in items if q.lower() in x[1].lower()]
+    if cat_filter != "Semua Genre":
+        items = [x for x in items if x[3] == cat_filter]
+
     if sort_mode == "A → Z":
         items.sort(key=lambda x: x[1].lower())
     elif sort_mode == "Z → A":
         items.sort(key=lambda x: x[1].lower(), reverse=True)
+    elif sort_mode == "Ukuran Terbesar":
+        items.sort(key=lambda x: x[2], reverse=True)
+    elif sort_mode == "Ukuran Terkecil":
+        items.sort(key=lambda x: x[2])
 
-    st.caption(f"Menampilkan {len(items)} dari {len(PS4_GAMES)} judul")
+    st.caption(f"Menampilkan **{len(items)}** dari **{len(PS4_GAMES)}** judul game Sub Indo")
     if not items:
-        st.info("Game yang dicari belum tersedia. Tanyakan lewat WhatsApp, siapa tahu bisa dicarikan.")
-        st.link_button("Tanya via WhatsApp", wa_link(f"Halo MEDY5TATION, apakah ada game: {q}?"))
+        st.info("Game yang dicari belum ada di daftar. Tanyakan langsung lewat WhatsApp, kami siap bantu carikan!")
+        st.link_button("Tanya Ketersediaan Game via WhatsApp", wa_link(f"Halo MEDY5TATION, apakah ada game Sub Indo: {q}?"))
         return
 
     cols = st.columns(4)
     chunk = (len(items) + 3) // 4
     for ci, col in enumerate(cols):
         with col:
-            for n, g in items[ci * chunk:(ci + 1) * chunk]:
+            for n, g, sz, cat in items[ci * chunk:(ci + 1) * chunk]:
                 html_block(f'''
-                    <div class="game-badge"><span class="game-num">#{n}</span>
-                    <span style="color:#fff;font-weight:500;">{html.escape(g)}</span></div>''')
+                    <div class="game-badge">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="game-num">#{n}</span>
+                            <div>
+                                <div style="color:#fff;font-weight:600;line-height:1.2;">{html.escape(g)}</div>
+                                <small style="color:#64748b;font-size:.7rem;">{cat}</small>
+                            </div>
+                        </div>
+                        <span class="size-pill">~{sz} GB</span>
+                    </div>''')
 
 
+# ---------------- Tab 3 & 4: Bola, Android & Switch ----------------
 def _list_card(title, icon, color_cls, color, rows):
     items = "".join(
-        f'<div class="list-item-dark"><b style="color:{color};">{i + 1}.</b> {html.escape(r)}</div>'
+        f'<div class="list-item-dark"><span><b style="color:{color};margin-right:6px;">{i + 1}.</b> {html.escape(r)}</span>'
+        f'<i class="bi bi-check2-circle" style="color:{color};"></i></div>'
         for i, r in enumerate(rows)
     )
     html_block(f'''
@@ -501,7 +650,9 @@ def tab_bola():
     with b1:
         _list_card("UPDATE BOLA PS4 HEN (SUMMER 2027)", "bi-dribbble", "border-pink", "#ff2a6d", PS4_HEN_UPDATES)
     with b2:
-        _list_card("UPDATE BOLA PS3", "bi-dribbble", "border-cyan", "#05d9e8", PS3_BOLA_UPDATES)
+        _list_card("UPDATE BOLA PS3", "bi-controller", "border-cyan", "#05d9e8", PS3_BOLA_UPDATES)
+    st.write("")
+    st.link_button("⚽ Pesan Update Patch Bola via WhatsApp", wa_link("Halo MEDY5TATION, saya ingin tanya/order Update Patch Bola terbaru."))
 
 
 def tab_extra():
@@ -511,62 +662,105 @@ def tab_extra():
         _list_card("ANDROID APPS &amp; STREAMING", "bi-android2", "border-green", "#10b981", ANDROID_SERVICES)
     with e2:
         _list_card("NINTENDO SWITCH SUB INDO", "bi-nintendo-switch", "border-pink", "#ff2a6d", SWITCH_GAMES)
+    st.write("")
+    st.link_button("📱 Tanya Layanan Android / Switch via WhatsApp", wa_link("Halo MEDY5TATION, saya ingin order layanan Android / Game Switch Sub Indo."))
 
 
-# ---------------- Kalkulator Biaya ----------------
+# ---------------- Tab 5: Kalkulator Biaya All-in-One ----------------
 def tab_kalkulator():
     st.write("")
-    st.subheader("🧮 Kalkulator Biaya Servis")
-    st.caption("Hitung estimasi biaya layanan, lalu kirim rinciannya ke WhatsApp.")
-    left, right = st.columns([2, 1])
+    st.subheader("🧮 Kalkulator Estimasi Biaya (Layanan & Game)")
+    st.caption("Gabungkan layanan servis, pembelian paket game, dan gunakan kode promo jika ada.")
+
+    left, right = st.columns([1.8, 1.2])
+    lines = []
+
     with left:
-        lines = []
+        st.markdown("##### 1. Layanan Servis & Paket HDD")
         for name, price in SERVICES.items():
             c1, c2 = st.columns([3, 1])
             with c1:
-                use = st.checkbox(f"{name} · {rupiah(price)}", key=f"calc_{name}")
+                use = st.checkbox(f"{name} ({rupiah(price)})", key=f"calc_{name}")
             with c2:
-                qty = st.number_input("Jumlah", 1, 10, 1, key=f"qty_{name}", label_visibility="collapsed",
-                                      disabled=not use)
+                qty = st.number_input("Jml", 1, 10, 1, key=f"qty_{name}", label_visibility="collapsed", disabled=not use)
             if use:
-                lines.append((name, qty, price))
-        stik_qty = st.number_input("Servis stik (harga konsultasi, tidak dihitung)", 0, 10, 0)
-        if stik_qty:
-            st.info("Servis stik dihargai setelah dicek. Rinciannya akan ikut di pesan WhatsApp.")
+                lines.append((name, qty, qty * price))
 
-    total = sum(q * p for _, q, p in lines)
+        st.markdown("##### 2. Satuan Game Sub Indo")
+        cg1, cg2 = st.columns(2)
+        with cg1:
+            jml_drive = st.number_input("Jumlah Game Via Google Drive (15K/game)", 0, 50, 0)
+            if jml_drive > 0:
+                lines.append(("Game Sub Indo Via GDrive", jml_drive, jml_drive * 15_000))
+        with cg2:
+            jml_pkg = st.number_input("Jumlah Game Install di PS (25K / 3=65K)", 0, 50, 0)
+            if jml_pkg > 0:
+                harga_pkg = calc_pkg_install_price(jml_pkg)
+                lines.append(("Game Install Langsung di PS (Promo diterapkan)", jml_pkg, harga_pkg))
+
+        st.markdown("##### 3. Servis Stik & Voucher Promo")
+        cs1, cs2 = st.columns(2)
+        with cs1:
+            stik_qty = st.number_input("Jumlah Stik Diservis (Harga Konsultasi)", 0, 10, 0)
+            keluhan_stik = st.selectbox("Keluhan Utama Stik", ["Analog Drift", "Tombol Tidak Responsif / Keras", "Mati Total / Tidak Connect", "Ganti Baterai / Casing"]) if stik_qty else ""
+        with cs2:
+            kode_promo = st.text_input("Kode Voucher Promo (Opsional)", placeholder="Contoh: MEDY5HEMAT").strip().upper()
+
+    subtotal = sum(sub for _, _, sub in lines)
+    diskon = 0
+    ket_promo = ""
+    if kode_promo and kode_promo in PROMO_CODES and subtotal >= 50_000:
+        ket_promo, diskon = PROMO_CODES[kode_promo]
+    elif kode_promo and kode_promo not in PROMO_CODES:
+        st.toast("Kode promo tidak ditemukan.", icon="⚠️")
+
+    total = max(0, subtotal - diskon)
+
     with right:
         html_block(f'''
-            <div class="total-box"><small style="color:#94a3b8;">ESTIMASI TOTAL</small>
-            <div class="amount">{rupiah(total)}</div></div>''')
+            <div class="total-box">
+                <small style="color:#94a3b8;">ESTIMASI TOTAL BIAYA</small>
+                <div class="amount">{rupiah(total)}</div>
+                {f'<small style="color:#10b981;">Hemat {rupiah(diskon)} ({ket_promo})</small>' if diskon else ''}
+            </div>
+        ''')
+
         if lines or stik_qty:
-            msg = "Halo MEDY5TATION, saya mau order:\n"
-            for n, q, p in lines:
-                msg += f"- {n} x{q} = {rupiah(q * p)}\n"
+            st.markdown("**Rincian Pesanan:**")
+            msg = "Halo MEDY5TATION, saya ingin memesan layanan berikut:\n"
+            for n, q, sub in lines:
+                st.write(f"• {n} (x{q}) = **{rupiah(sub)}**")
+                msg += f"- {n} x{q} = {rupiah(sub)}\n"
             if stik_qty:
-                msg += f"- Servis Stik PS4 x{stik_qty} (konsultasi)\n"
-            msg += f"Total estimasi: {rupiah(total)}"
-            st.link_button("Kirim ke WhatsApp", wa_link(msg), use_container_width=True)
+                st.write(f"• Servis Stik x{stik_qty} ({keluhan_stik}) = **Konsultasi**")
+                msg += f"- Servis Stik x{stik_qty} ({keluhan_stik}) = Konsultasi\n"
+            if diskon:
+                msg += f"Promo ({kode_promo}): -{rupiah(diskon)}\n"
+            msg += f"\n*Total Estimasi: {rupiah(total)}*"
+
+            st.link_button("📲 Kirim Rincian ke WhatsApp", wa_link(msg), use_container_width=True)
         else:
-            st.caption("Pilih layanan di sebelah kiri.")
+            st.info("Centang layanan atau masukkan jumlah game di sebelah kiri untuk melihat rincian harga.")
 
 
-# ---------------- Booking Servis ----------------
+# ---------------- Tab 6: Booking Servis ----------------
 def tab_booking():
     st.write("")
-    st.subheader("🔧 Booking Servis")
-    st.caption("Isi data unit kamu. Kamu akan mendapat kode tiket untuk memantau progres.")
+    st.subheader("🔧 Form Booking Servis & Instalasi")
+    st.caption("Isi data unit konsol/stik kamu untuk mendapatkan Kode Tiket pelacakan progres.")
+
     with st.form("booking_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            nama = st.text_input("Nama *")
-            wa = st.text_input("Nomor WhatsApp *", placeholder="08xxxxxxxxxx")
-            perangkat = st.selectbox("Perangkat", ["PS4", "PS4 Slim", "PS4 Pro", "PS3", "Stik PS4", "Stik PS5", "Nintendo Switch", "Lainnya"])
+            nama = st.text_input("Nama Lengkap *")
+            wa = st.text_input("Nomor WhatsApp Aktif *", placeholder="08xxxxxxxxxx")
+            perangkat = st.selectbox("Jenis Perangkat", ["PS4 Fat", "PS4 Slim", "PS4 Pro", "PS3", "Stik PS4 (DS4)", "Stik PS5 (DualSense)", "Nintendo Switch", "HDD Eksternal", "Lainnya"])
+            metode_antar = st.selectbox("Metode Penyerahan Unit", ["Datang Langsung ke Workshop", "Kirim via Kurir Instan (Gojek/Grab/Maxim)", "Kirim Ekspedisi Luar Kota"])
         with c2:
-            layanan = st.selectbox("Layanan", ["Jasa HEN PS4", "Ganti Pasta Thermal", "Servis Stik PS4", "Cek / Diagnosa", "Lainnya"])
-            tgl = st.date_input("Rencana datang / antar", min_value=date.today())
-            keluhan = st.text_area("Keluhan / catatan", placeholder="Contoh: kipas bising, mati sendiri setelah 30 menit")
-        kirim = st.form_submit_button("Buat Tiket Servis")
+            layanan = st.selectbox("Layanan Utama", ["Jasa HEN PS4", "Ganti Pasta Thermal + Deep Clean", "Isi Game PS4 Sub Indo", "Servis Stik PS4 / PS5", "Cek / Diagnosa Kerusakan", "Lainnya"])
+            tgl = st.date_input("Rencana Tanggal Datang / Kirim", min_value=date.today())
+            keluhan = st.text_area("Detail Keluhan / Catatan Tambahan", placeholder="Contoh: Mesin cepat panas dan bunyi kipas kencang, atau daftar game yang ingin diisi...")
+        kirim = st.form_submit_button("🚀 Buat Tiket Servis Sekarang")
 
     if kirim:
         if not nama.strip() or not wa.strip():
@@ -574,201 +768,365 @@ def tab_booking():
             return
         orders = load_json(ORDERS_FILE, {})
         code = new_ticket(orders)
+        waktu_skrg = now().strftime("%Y-%m-%d %H:%M")
         orders[code] = {
-            "nama": nama.strip(), "wa": wa.strip(), "perangkat": perangkat, "layanan": layanan,
-            "tanggal": str(tgl), "keluhan": keluhan.strip(), "status": STATUS_FLOW[0],
-            "catatan": "", "dibuat": now().strftime("%Y-%m-%d %H:%M"),
+            "nama": nama.strip(),
+            "wa": wa.strip(),
+            "perangkat": perangkat,
+            "metode": metode_antar,
+            "layanan": layanan,
+            "tanggal": str(tgl),
+            "keluhan": keluhan.strip(),
+            "status": STATUS_FLOW[0],
+            "catatan": "Tiket berhasil dibuat. Silakan konfirmasi via WhatsApp.",
+            "biaya_final": 0,
+            "dibuat": waktu_skrg,
+            "riwayat": [{"waktu": waktu_skrg, "status": STATUS_FLOW[0], "ket": "Booking dibuat oleh pelanggan"}],
         }
         saved = save_json(ORDERS_FILE, orders)
         st.session_state["last_ticket"] = code
         st.session_state["last_ticket_saved"] = saved
         st.session_state["last_ticket_msg"] = (
-            f"Halo MEDY5TATION, saya {nama.strip()}. Booking servis {layanan} untuk {perangkat}. "
-            f"Tiket: {code}. Rencana datang: {tgl}. Keluhan: {keluhan.strip() or '-'}"
+            f"Halo MEDY5TATION, saya *{nama.strip()}*.\n"
+            f"Saya sudah buat Tiket Servis: *{code}*\n"
+            f"- Perangkat: {perangkat}\n"
+            f"- Layanan: {layanan}\n"
+            f"- Metode: {metode_antar}\n"
+            f"- Rencana Tanggal: {tgl}\n"
+            f"- Keluhan/Catatan: {keluhan.strip() or '-'}"
         )
 
     if st.session_state.get("last_ticket"):
         code = st.session_state["last_ticket"]
         html_block(f'''
             <div class="card-box border-cyan" style="text-align:center;height:auto;">
-                <small style="color:#94a3b8;">KODE TIKET KAMU</small>
+                <small style="color:#94a3b8;">KODE TIKET SERVIS KAMU</small>
                 <div class="ticket-code">{code}</div>
-                <small style="color:#94a3b8;">Simpan kode ini untuk cek status di tab Cek Status.</small>
+                <p style="color:#cbd5e1;font-size:.88rem;margin:6px 0;">Simpan atau screenshot kode ini untuk memantau progres di tab <b>Cek Status</b>.</p>
             </div>''')
         if not st.session_state.get("last_ticket_saved"):
-            st.warning("Tiket belum bisa disimpan di server. Kirim lewat WhatsApp agar tercatat.")
-        st.link_button("Konfirmasi lewat WhatsApp", wa_link(st.session_state["last_ticket_msg"]))
+            st.warning("Catatan: Penyimpanan lokal server sedang terbatas. Pastikan kamu menekan tombol Konfirmasi WhatsApp di bawah ini.")
+        st.link_button("📲 Konfirmasi Tiket via WhatsApp", wa_link(st.session_state["last_ticket_msg"]), use_container_width=True)
 
 
-# ---------------- Cek Status ----------------
+# ---------------- Tab 7: Cek Status & Cetak Nota ----------------
+def generate_receipt_html(code, o):
+    biaya = rupiah(o.get("biaya_final", 0)) if o.get("biaya_final") else "Menunggu Konfirmasi"
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Struk Servis {code}</title>
+<style>
+body {{ font-family: Arial, sans-serif; background:#f8fafc; padding:30px; color:#0f172a; }}
+.box {{ max-width:500px; margin:auto; background:#fff; padding:24px; border-radius:12px; border:2px solid #0f172a; }}
+h2 {{ margin:0; color:#e11d48; letter-spacing:2px; }}
+.row {{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #cbd5e1; font-size:14px; }}
+.footer {{ text-align:center; margin-top:20px; font-size:12px; color:#64748b; }}
+</style></head><body>
+<div class="box">
+  <h2>MEDY5TATION PALEMBANG</h2>
+  <p style="margin:4px 0 16px 0;font-size:12px;">Tegal Binangun Sasana Patra · WA: +{WA_NUMBER}</p>
+  <div class="row"><b>KODE TIKET</b><b>{html.escape(code)}</b></div>
+  <div class="row"><span>Nama Pelanggan</span><span>{html.escape(o.get('nama','-'))}</span></div>
+  <div class="row"><span>Perangkat</span><span>{html.escape(o.get('perangkat','-'))}</span></div>
+  <div class="row"><span>Layanan</span><span>{html.escape(o.get('layanan','-'))}</span></div>
+  <div class="row"><span>Status Terakhir</span><b>{html.escape(o.get('status','-'))}</b></div>
+  <div class="row"><span>Tanggal Dibuat</span><span>{html.escape(o.get('dibuat','-'))}</span></div>
+  <div class="row"><span>Total Biaya</span><b>{biaya}</b></div>
+  <p style="font-size:13px;margin-top:14px;"><b>Catatan Teknisi:</b><br>{html.escape(o.get('catatan') or '-')}</p>
+  <div class="footer">Terima kasih telah mempercayakan konsol Anda di MEDY5TATION!</div>
+</div></body></html>"""
+
+
 def tab_status():
     st.write("")
-    st.subheader("🔎 Cek Status Servis")
-    code = st.text_input("Masukkan kode tiket", placeholder="MD-XXXXX").strip().upper()
+    st.subheader("🔎 Lacak Status Servis Real-Time")
+    default_code = st.session_state.get("last_ticket", "")
+    code = st.text_input("Masukkan Kode Tiket (Contoh: MD-XXXXX)", value=default_code, placeholder="MD-XXXXX").strip().upper()
     if not code:
-        st.caption("Kode tiket diberikan setelah kamu booking servis.")
+        st.caption("Kode tiket didapat setelah kamu mengisi form di tab Booking Servis.")
         return
+
     orders = load_json(ORDERS_FILE, {})
     o = orders.get(code)
     if not o:
-        st.error("Kode tiket tidak ditemukan. Periksa lagi penulisannya atau hubungi kami lewat WhatsApp.")
+        st.error("Kode tiket tidak ditemukan. Pastikan penulisan benar (menggunakan awalan MD-) atau hubungi admin via WhatsApp.")
         return
+
     idx = STATUS_FLOW.index(o["status"]) if o["status"] in STATUS_FLOW else 0
     steps = "".join(f'<div class="step {"done" if i <= idx else ""}"></div>' for i in range(len(STATUS_FLOW)))
-    note = f'<p style="color:#cbd5e1;margin:8px 0 0 0;">Catatan teknisi: {html.escape(o["catatan"])}</p>' if o.get("catatan") else ""
+    biaya_str = rupiah(o["biaya_final"]) if o.get("biaya_final", 0) > 0 else "Menunggu Pengecekan"
+    note = f'<div style="background:rgba(5,217,232,.08);border-left:3px solid #05d9e8;padding:10px;margin-top:12px;border-radius:6px;font-size:.88rem;"><b>Catatan Teknisi:</b> {html.escape(o["catatan"])}</div>' if o.get("catatan") else ""
+
     html_block(f'''
         <div class="card-box border-pink" style="height:auto;">
-            <small style="color:#94a3b8;">TIKET {code}</small>
-            <div style="font-size:1.4rem;font-weight:800;color:#ff2a6d;">{html.escape(o["status"])}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                <small style="color:#94a3b8;">TIKET #{code} · {html.escape(o.get("nama", ""))}</small>
+                <span class="size-pill">Biaya: {biaya_str}</span>
+            </div>
+            <div style="font-size:1.5rem;font-weight:800;color:#ff2a6d;margin-top:4px;">{html.escape(o["status"])}</div>
             <div class="track">{steps}</div>
-            <small style="color:#94a3b8;">{idx + 1} dari {len(STATUS_FLOW)} tahap</small>
-            <p style="margin:12px 0 0 0;">{html.escape(o["layanan"])} · {html.escape(o["perangkat"])}</p>
-            <small style="color:#94a3b8;">Dibuat {o["dibuat"]}</small>{note}
+            <small style="color:#94a3b8;">Tahap {idx + 1} dari {len(STATUS_FLOW)}: {" → ".join(STATUS_FLOW)}</small>
+            <p style="margin:12px 0 4px 0;font-weight:600;">{html.escape(o["layanan"])} · {html.escape(o["perangkat"])}</p>
+            <small style="color:#94a3b8;">Dibuat pada: {o["dibuat"]} | Metode: {html.escape(o.get("metode", "Workshop"))}</small>
+            {note}
         </div>''')
-    st.link_button("Tanya progres via WhatsApp", wa_link(f"Halo MEDY5TATION, mau tanya progres tiket {code}."))
+
+    # Riwayat Log Timeline
+    if o.get("riwayat"):
+        with st.expander("🕒 Lihat Riwayat Update Tiket", expanded=True):
+            for log in reversed(o["riwayat"]):
+                html_block(f'''
+                    <div class="log-item">
+                        <b style="color:#05d9e8;">{html.escape(log.get("status", ""))}</b> — <small>{html.escape(log.get("waktu", ""))}</small><br>
+                        <span>{html.escape(log.get("ket", ""))}</span>
+                    </div>
+                ''')
+
+    c_btn1, c_btn2 = st.columns(2)
+    with c_btn1:
+        st.link_button("📲 Tanya Teknisi via WhatsApp", wa_link(f"Halo MEDY5TATION, mau tanya progres tiket servis {code} atas nama {o.get('nama', '')}."), use_container_width=True)
+    with c_btn2:
+        receipt_html = generate_receipt_html(code, o)
+        st.download_button("🧾 Unduh Struk / Nota Digital (HTML)", receipt_html, file_name=f"Nota_{code}.html", mime="text/html", use_container_width=True)
 
 
-# ---------------- Bantuan ----------------
+# ---------------- Tab 8: Bantuan & Lokasi ----------------
 def tab_bantuan():
     st.write("")
     c1, c2 = st.columns([3, 2])
     with c1:
-        st.subheader("❓ Pertanyaan Umum")
+        st.subheader("❓ Pertanyaan Umum (FAQ)")
         for q, a in FAQ:
             with st.expander(q):
                 st.write(a)
-        st.subheader("🩺 Diagnosa Mandiri")
-        masalah = st.selectbox("Pilih masalah yang kamu alami", list(TROUBLESHOOT.keys()))
+        st.subheader("🩺 Diagnosa Mandiri Kerusakan Konsol")
+        masalah = st.selectbox("Pilih gejala yang kamu alami:", list(TROUBLESHOOT.keys()))
         for step in TROUBLESHOOT[masalah]:
             st.markdown(f"- {step}")
-        st.caption("Kalau langkah di atas belum menyelesaikan masalah, booking servis atau konsultasi lewat WhatsApp.")
+        st.caption("Jika langkah di atas belum menyelesaikan masalah, silakan buat tiket di tab Booking Servis.")
     with c2:
-        st.subheader("📍 Lokasi & Jam Buka")
+        st.subheader("📍 Lokasi Workshop & Jam Operasional")
         html_block(f'''
             <div class="card-box border-purple" style="height:auto;">
                 <b><i class="bi bi-geo-alt-fill" style="color:#ff2a6d;"></i> TEGAL BINANGUN SASANA PATRA</b>
-                <p style="color:#94a3b8;margin:4px 0 10px 0;">Palembang</p>
-                <p style="margin:0;">Jam buka: {OPEN_HOUR}:00 – {CLOSE_HOUR}:00 WIB</p>
+                <p style="color:#94a3b8;margin:4px 0 10px 0;">Plaju / Jakabaring, Kota Palembang, Sumatera Selatan</p>
+                <p style="margin:0;">🕒 Jam Operasional: <b>{OPEN_HOUR}:00 – {CLOSE_HOUR}:00 WIB</b> (Setiap Hari)</p>
             </div>''')
-        st.map({"lat": [STORE_LAT], "lon": [STORE_LON]}, zoom=11)
-        st.caption("Titik peta perkiraan. Ubah STORE_LAT dan STORE_LON di bagian konfigurasi agar tepat.")
+        st.map({"lat": [STORE_LAT], "lon": [STORE_LON]}, zoom=12)
+        st.link_button("🗺️ Minta Shareloc Presisi via WhatsApp", wa_link("Halo MEDY5TATION, boleh minta shareloc workshop Tegal Binangun?"), use_container_width=True)
 
 
-# ---------------- Testimoni ----------------
+# ---------------- Tab 9: Testimoni Pelanggan (SUDAH DIPERBAIKI) ----------------
 def tab_testimoni():
     st.write("")
     reviews = load_json(REVIEWS_FILE, [])
-    st.subheader("⭐ Testimoni Pelanggan")
+    st.subheader("⭐ Testimoni & Ulasan Pelanggan")
+
     if reviews:
-        avg = sum(r["rating"] for r in reviews) / len(reviews)
-        st.markdown(f"**{avg:.1f} / 5** dari {len(reviews)} ulasan")
+        avg = sum(int(r.get("rating", 5)) for r in reviews) / len(reviews)
+        st.markdown(f"### ⭐ **{avg:.1f} / 5.0** dari **{len(reviews)}** ulasan pelanggan")
+
     left, right = st.columns([2, 1])
     with left:
         if not reviews:
-            st.info("Belum ada ulasan. Jadilah yang pertama.")
+            st.info("Belum ada ulasan. Jadilah pelanggan pertama yang memberikan ulasan!")
         for r in reversed(reviews[-20:]):
-            stars = "★" * r["rating"] + "☆" * (5 - r["rating"])
+            rt = max(1, min(5, int(r.get("rating", 5))))
+            # Perbaikan bug sintaks perkalian string bintang
+            stars = ("★" * rt) + ("☆" * (5 - rt))
+            layanan_tag = f' · <span style="color:#05d9e8;">{html.escape(r.get("layanan", "Pelanggan"))}</span>' if r.get("layanan") else ""
             html_block(f'''
-                <div class="review"><div class="stars">{stars}</div>
-                <div>{html.escape(r["teks"])}</div>
-                <small>{html.escape(r["nama"])} · {r["waktu"]}</small></div>''')
+                <div class="review">
+                    <div class="stars">{stars}</div>
+                    <div style="margin:6px 0;font-size:.92rem;">{html.escape(r.get("teks", ""))}</div>
+                    <small><b>{html.escape(r.get("nama", "Anonim"))}</b>{layanan_tag} · {html.escape(r.get("waktu", ""))}</small>
+                </div>''')
+
     with right:
         with st.form("review_form", clear_on_submit=True):
-            nama = st.text_input("Nama")
-            rating = st.slider("Rating", 1, 5, 5)
-            teks = st.text_area("Ulasan", max_chars=300)
-            ok = st.form_submit_button("Kirim ulasan")
+            st.markdown("##### Tulis Ulasan Kamu")
+            nama = st.text_input("Nama Kamu *")
+            layanan_ulasan = st.selectbox("Layanan yang Digunakan", ["Isi Game Sub Indo", "Paket HDD Full Game", "Jasa HEN PS4", "Ganti Pasta Thermal", "Servis Stik", "Update Bola / Lainnya"])
+            rating = st.slider("Rating Kepuasan", 1, 5, 5)
+            teks = st.text_area("Pengalaman Kamu *", max_chars=300, placeholder="Pelayanan ramah, game lancar jaya...")
+            ok = st.form_submit_button("🌟 Kirim Ulasan")
         if ok:
             if not nama.strip() or not teks.strip():
-                st.error("Nama dan ulasan wajib diisi.")
+                st.error("Nama dan isi ulasan wajib diisi.")
             else:
-                reviews.append({"nama": nama.strip()[:40], "rating": rating, "teks": teks.strip(),
-                                "waktu": now().strftime("%d %b %Y")})
+                reviews.append({
+                    "nama": nama.strip()[:40],
+                    "layanan": layanan_ulasan,
+                    "rating": int(rating),
+                    "teks": teks.strip(),
+                    "waktu": now().strftime("%d %b %Y"),
+                })
                 if save_json(REVIEWS_FILE, reviews):
-                    st.success("Terima kasih atas ulasanmu.")
+                    st.success("Terima kasih atas ulasan positifmu!")
                     st.rerun()
                 else:
                     st.error("Ulasan belum bisa disimpan di server.")
 
 
-# ---------------- Admin ----------------
+# ---------------- Tab 10: Panel Admin Pro (SUDAH DIPERBAIKI & DITINGKATKAN) ----------------
 def tab_admin():
     st.write("")
-    st.subheader("🔐 Panel Admin")
+    st.subheader("🔐 Panel Admin & Manajemen Workshop")
     if not st.session_state.get("is_admin"):
-        pw = st.text_input("Password admin", type="password")
-        if st.button("Masuk"):
-            if pw == admin_password():
-                st.session_state["is_admin"] = True
-                st.rerun()
-            else:
-                st.error("Password salah.")
-        st.caption("Atur password lewat ADMIN_PASSWORD di st.secrets atau environment variable.")
+        c_login, _ = st.columns([1, 2])
+        with c_login:
+            pw = st.text_input("Password Admin", type="password")
+            if st.button("Masuk Panel Admin", use_container_width=True):
+                if pw == admin_password():
+                    st.session_state["is_admin"] = True
+                    st.rerun()
+                else:
+                    st.error("Password salah!")
+            st.caption("Default password lokal: `medy5admin` (Ubah via `st.secrets['ADMIN_PASSWORD']`).")
         return
 
-    if st.button("Keluar admin"):
-        st.session_state["is_admin"] = False
-        st.rerun()
+    top1, top2 = st.columns([5, 1])
+    with top2:
+        if st.button("🚪 Keluar Admin", use_container_width=True):
+            st.session_state["is_admin"] = False
+            st.rerun()
 
     orders = load_json(ORDERS_FILE, {})
     reviews = load_json(REVIEWS_FILE, [])
 
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Total tiket", len(orders))
-    m2.metric("Sedang berjalan", sum(1 for o in orders.values() if o["status"] not in STATUS_FLOW[-2:]))
-    m3.metric("Ulasan", len(reviews))
+    # Metrik Analitik
+    total_omzet = sum(int(o.get("biaya_final", 0)) for o in orders.values())
+    aktif_count = sum(1 for o in orders.values() if o.get("status") not in STATUS_FLOW[-2:])
+    selesai_count = sum(1 for o in orders.values() if o.get("status") in STATUS_FLOW[-2:])
 
-    st.markdown("#### Kelola tiket")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total Tiket Masuk", len(orders))
+    m2.metric("Sedang Dikerjakan", aktif_count)
+    m3.metric("Selesai / Diambil", selesai_count)
+    m4.metric("Total Omzet Tercatat", rupiah(total_omzet))
+
+    st.markdown("---")
+    st.markdown("#### 📋 Kelola Tiket Servis")
+
     if not orders:
-        st.info("Belum ada tiket.")
+        st.info("Belum ada data tiket servis yang masuk.")
     else:
-        filt = st.selectbox("Filter status", ["Semua"] + STATUS_FLOW)
-        rows = [{"Tiket": k, **v} for k, v in orders.items() if filt == "Semua" or v["status"] == filt]
+        fc1, fc2 = st.columns(2)
+        with fc1:
+            filt = st.selectbox("Filter Status", ["Semua"] + STATUS_FLOW)
+        with fc2:
+            cari_tiket = st.text_input("Cari Nama / Nomor WA / Kode Tiket").strip().lower()
+
+        rows = []
+        for k, v in orders.items():
+            if filt != "Semua" and v.get("status") != filt:
+                continue
+            if cari_tiket and not (cari_tiket in k.lower() or cari_tiket in v.get("nama", "").lower() or cari_tiket in v.get("wa", "").lower()):
+                continue
+            rows.append({
+                "Tiket": k,
+                "Nama": v.get("nama", ""),
+                "WA": v.get("wa", ""),
+                "Perangkat": v.get("perangkat", ""),
+                "Layanan": v.get("layanan", ""),
+                "Status": v.get("status", ""),
+                "Biaya (Rp)": v.get("biaya_final", 0),
+                "Tanggal": v.get("tanggal", ""),
+            })
+
         st.dataframe(rows, use_container_width=True, hide_index=True)
 
-        pick = st.selectbox("Pilih tiket", list(orders.keys()))
+        st.markdown("##### ✏️ Update Tiket Pelanggan")
+        pick = st.selectbox("Pilih Kode Tiket untuk Diedit:", list(orders.keys()))
         o = orders[pick]
-        c1, c2 = st.columns(2)
+
+        c1, c2, c3 = st.columns([1.2, 1.2, 2])
         with c1:
-            new_status = st.selectbox("Status", STATUS_FLOW, index=STATUS_FLOW.index(o["status"]) if o["status"] in STATUS_FLOW else 0)
+            new_status = st.selectbox("Status Baru", STATUS_FLOW, index=STATUS_FLOW.index(o["status"]) if o["status"] in STATUS_FLOW else 0)
         with c2:
-            new_note = st.text_input("Catatan untuk pelanggan", value=o.get("catatan", ""))
+            new_biaya = st.number_input("Biaya Final / Tagihan (Rp)", min_value=0, step=10_000, value=int(o.get("biaya_final", 0)))
+        with c3:
+            new_note = st.text_input("Catatan Teknisi untuk Pelanggan", value=o.get("catatan", ""))
+
         b1, b2, b3 = st.columns(3)
-        if b1.button("Simpan perubahan"):
+        if b1.button("💾 Simpan Perubahan Tiket", use_container_width=True):
+            waktu_up = now().strftime("%Y-%m-%d %H:%M")
             orders[pick]["status"] = new_status
+            orders[pick]["biaya_final"] = new_biaya
             orders[pick]["catatan"] = new_note
+            if "riwayat" not in orders[pick]:
+                orders[pick]["riwayat"] = []
+            orders[pick]["riwayat"].append({
+                "waktu": waktu_up,
+                "status": new_status,
+                "ket": f"{new_note} (Biaya: {rupiah(new_biaya)})" if new_biaya else new_note,
+            })
             save_json(ORDERS_FILE, orders)
-            st.success("Tersimpan.")
+            st.success(f"Tiket {pick} berhasil diperbarui!")
             st.rerun()
-        wa_to = "".join(ch for ch in o["wa"] if ch.isdigit())
+
+        wa_to = "".join(ch for ch in o.get("wa", "") if ch.isdigit())
         if wa_to.startswith("0"):
             wa_to = "62" + wa_to[1:]
-        b2.link_button("Chat pelanggan", f"https://wa.me/{wa_to}?text=" + quote(
-            f"Halo {o['nama']}, update servis tiket {pick}: {new_status}. {new_note}"))
-        if b3.button("Hapus tiket"):
+        pesan_wa_pelanggan = (
+            f"Halo Kak *{o.get('nama', '')}*, update untuk Tiket Servis *{pick}* ({o.get('perangkat', '')}):\n"
+            f"- Status Saat Ini: *{new_status}*\n"
+            f"- Biaya: *{rupiah(new_biaya) if new_biaya else 'Menunggu konfirmasi'}*\n"
+            f"- Catatan Teknisi: {new_note or '-'}\n\n"
+            f"Terima kasih! — *MEDY5TATION Palembang*"
+        )
+        b2.link_button("📲 Kirim Notifikasi WA ke Pelanggan", f"https://wa.me/{wa_to}?text=" + quote(pesan_wa_pelanggan), use_container_width=True)
+
+        if b3.button("🗑️ Hapus Tiket Ini", use_container_width=True):
             orders.pop(pick, None)
             save_json(ORDERS_FILE, orders)
             st.rerun()
 
         # Ekspor CSV
         buf = io.StringIO()
-        buf.write("tiket,nama,wa,perangkat,layanan,tanggal,status,catatan,dibuat,keluhan\n")
+        buf.write("tiket,nama,wa,perangkat,layanan,tanggal,status,biaya_final,catatan,dibuat,keluhan\n")
         for k, v in orders.items():
-            vals = [k, v["nama"], v["wa"], v["perangkat"], v["layanan"], v["tanggal"], v["status"],
-                    v.get("catatan", ""), v["dibuat"], v["keluhan"]]
+            vals = [k, v.get("nama", ""), v.get("wa", ""), v.get("perangkat", ""), v.get("layanan", ""), v.get("tanggal", ""), v.get("status", ""),
+                    v.get("biaya_final", 0), v.get("catatan", ""), v.get("dibuat", ""), v.get("keluhan", "")]
             buf.write(",".join('"' + str(x).replace('"', '""') + '"' for x in vals) + "\n")
-        st.download_button("Unduh semua tiket (CSV)", buf.getvalue(), "tiket_servis.csv", "text/csv")
+        st.download_button("📥 Unduh Laporan Semua Tiket (CSV)", buf.getvalue(), "laporan_tiket_medy5tation.csv", "text/csv")
 
-    st.markdown("#### Moderasi ulasan")
-    for i, r in enumerate(reviews):
-        c1, c2 = st.columns([6, 1])
-        c1.write(f"{'★' * r['rating']} {r['nama']}: {r['teks']}")
-        if c2.button("Hapus", key=f"delrev_{i}"):
-            reviews.pop(i)
-            save_json(REVIEWS_FILE, reviews)
-            st.rerun()
-    st.caption("Catatan: di Streamlit Community Cloud, file data bisa hilang saat aplikasi restart. "
-               "Untuk penyimpanan permanen, sambungkan ke database (misalnya Google Sheets atau Supabase).")
+    st.markdown("---")
+    col_mod, col_bak = st.columns(2)
+
+    with col_mod:
+        st.markdown("#### ⭐ Moderasi Ulasan")
+        if not reviews:
+            st.caption("Belum ada ulasan.")
+        for i, r in enumerate(reviews):
+            c1, c2 = st.columns([5, 1])
+            rt = max(1, min(5, int(r.get("rating", 5))))
+            # Perbaikan bug sintaks perkalian string bintang di panel admin
+            bintang_str = "★" * rt
+            c1.write(f"{bintang_str} **{r.get('nama', '')}**: {r.get('teks', '')}")
+            if c2.button("Hapus", key=f"delrev_{i}"):
+                reviews.pop(i)
+                save_json(REVIEWS_FILE, reviews)
+                st.rerun()
+
+    with col_bak:
+        st.markdown("#### 💾 Backup & Restore Database JSON")
+        st.caption("Gunakan fitur ini untuk mem-backup data sebelum aplikasi di-restart di Streamlit Cloud.")
+        full_db = json.dumps({"orders": orders, "reviews": reviews}, ensure_ascii=False, indent=2)
+        st.download_button("⬇️ Backup Database (JSON)", full_db, file_name=f"medy5_backup_{now().strftime('%Y%m%d')}.json", mime="application/json", use_container_width=True)
+
+        up_file = st.file_uploader("⬆️ Restore dari File Backup JSON", type=["json"])
+        if up_file is not None:
+            if st.button("Proses Restore Database", use_container_width=True):
+                try:
+                    loaded = json.loads(up_file.read().decode("utf-8"))
+                    if "orders" in loaded:
+                        save_json(ORDERS_FILE, loaded["orders"])
+                    if "reviews" in loaded:
+                        save_json(REVIEWS_FILE, loaded["reviews"])
+                    st.success("Database berhasil di-restore!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"File JSON tidak valid: {e}")
 
 
 # ---------------- Footer ----------------
@@ -785,7 +1143,7 @@ def render_footer():
             </div>''')
     with sec_order:
         html_block(f'''
-            <small style="color:#94a3b8;letter-spacing:1px;font-weight:700;">ORDER &amp; STORE</small><br>
+            <small style="color:#94a3b8;letter-spacing:1px;font-weight:700;">ORDER &amp; OFFICIAL STORE</small><br>
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
                 <a href="{wa_link()}" target="_blank" class="social-link btn-wa"><i class="bi bi-whatsapp"></i> Chat WhatsApp</a>
                 <a href="https://id.shp.ee/FdsB8oxh" target="_blank" class="social-link btn-shopee"><i class="bi bi-bag-fill"></i> Shopee Store</a>
@@ -805,9 +1163,11 @@ def render_footer():
             <div>&ldquo; GAME IS ALWAYS A GOOD IDEA &rdquo;</div>
             <div style="letter-spacing:2px;color:#05d9e8;">&#9651; &#9675; &#10005; &#9633; PLAY &bull; SHARE &bull; TOGETHER</div>
         </div>
-        <a class="wa-float" href="''' + wa_link("Halo MEDY5TATION, saya mau tanya.") + '''" target="_blank" aria-label="Chat WhatsApp"><i class="bi bi-whatsapp"></i></a>''')
+        <a class="wa-float" href="''' + wa_link("Halo MEDY5TATION, saya mau tanya layanan game/servis.") + '''" target="_blank" aria-label="Chat WhatsApp"><i class="bi bi-whatsapp"></i></a>''')
 
 
+# =====================================================================
+# MAIN ENTRYPOINT
 # =====================================================================
 def main():
     set_page_styling()
@@ -816,18 +1176,20 @@ def main():
 
     tabs = st.tabs([
         "📦 Paket & Layanan",
-        f"🎮 List Game Sub Indo ({len(PS4_GAMES)})",
+        f"🎮 Katalog & Pilih Game ({len(PS4_GAMES)})",
         "⚽ Update Patch Bola",
         "📱 Android & Switch",
-        "🧮 Kalkulator",
+        "🧮 Kalkulator Biaya",
         "🔧 Booking Servis",
         "🔎 Cek Status",
         "❓ Bantuan & Lokasi",
         "⭐ Testimoni",
         "🔐 Admin",
     ])
-    for tab, fn in zip(tabs, [tab_paket, tab_games, tab_bola, tab_extra, tab_kalkulator,
-                              tab_booking, tab_status, tab_bantuan, tab_testimoni, tab_admin]):
+    for tab, fn in zip(tabs, [
+        tab_paket, tab_games, tab_bola, tab_extra, tab_kalkulator,
+        tab_booking, tab_status, tab_bantuan, tab_testimoni, tab_admin
+    ]):
         with tab:
             fn()
 
